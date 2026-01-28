@@ -68,7 +68,7 @@ extension TransferSyntax {
     
     /// Explicit VR Big Endian (1.2.840.10008.1.2.2) - Retired
     ///
-    /// Retired in DICOM 2024d. Included for compatibility with legacy files.
+    /// Retired in DICOM PS3.5 (2011). Included for compatibility with legacy files.
     /// VR is explicitly encoded, multi-byte values use big endian byte order.
     ///
     /// Reference: PS3.5 Section A.1
