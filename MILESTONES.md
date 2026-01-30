@@ -86,7 +86,7 @@ SwiftDICOMKit aims to provide a comprehensive, Swift-native implementation for w
 - [ ] `CGImage` creation for display on Apple platforms
 
 ### Technical Notes
-- Reference: PS3.5 Annex D - Transfer Syntaxes for Encapsulation
+- Reference: PS3.5 Section 8 - Native or Encapsulated Format Encoding
 - Reference: PS3.3 C.7.6.3 - Image Pixel Module
 - Use Accelerate framework for optimized pixel transformations
 
