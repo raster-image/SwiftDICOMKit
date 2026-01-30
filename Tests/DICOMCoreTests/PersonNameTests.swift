@@ -73,6 +73,15 @@ struct DICOMPersonNameTests {
         #expect(DICOMPersonName.parse("   ") == nil)
     }
     
+    @Test("Parse trims whitespace from individual components")
+    func testParseTrimComponentWhitespace() {
+        let name = DICOMPersonName.parse("Doe ^ John ^ Robert")
+        #expect(name != nil)
+        #expect(name?.familyName == "Doe")
+        #expect(name?.givenName == "John")
+        #expect(name?.middleName == "Robert")
+    }
+    
     // MARK: - Multiple Representation Tests
     
     @Test("Parse name with ideographic representation")

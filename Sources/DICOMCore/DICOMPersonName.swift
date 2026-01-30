@@ -24,7 +24,7 @@ import Foundation
 /// Examples:
 /// - "Doe^John" = family name "Doe", given name "John"
 /// - "Doe^John^Robert^Dr.^Jr." = full name with all components
-/// - "Yamada^Tarou===やまだ^たろう" = with phonetic representation
+/// - "Yamada^Tarou==やまだ^たろう" = with phonetic representation (empty ideographic)
 public struct DICOMPersonName: Sendable, Hashable {
     /// Name component group representing one character set representation
     ///
@@ -119,11 +119,13 @@ public struct DICOMPersonName: Sendable, Hashable {
         
         /// Parses a component group string into a ComponentGroup
         ///
+        /// Trims leading/trailing whitespace from each component per DICOM conventions.
+        ///
         /// - Parameter string: String with components separated by caret (^)
         /// - Returns: A ComponentGroup with parsed components
         public static func parse(_ string: String) -> ComponentGroup {
             let components = string.split(separator: "^", omittingEmptySubsequences: false)
-                .map { String($0) }
+                .map { String($0).trimmingCharacters(in: .whitespaces) }
             
             return ComponentGroup(
                 familyName: components.count > 0 ? components[0] : "",
