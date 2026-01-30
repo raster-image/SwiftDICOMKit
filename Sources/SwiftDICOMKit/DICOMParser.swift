@@ -137,11 +137,8 @@ struct DICOMParser {
         let vr: VR
         if let entry = DataElementDictionary.lookup(tag: tag) {
             vr = entry.vr.first ?? .UN
-        } else if tag.isPrivate {
-            // For private tags not in dictionary, use UN
-            vr = .UN
         } else {
-            // For unknown standard tags, use UN
+            // For unknown tags (both private and standard), use UN
             vr = .UN
         }
         
