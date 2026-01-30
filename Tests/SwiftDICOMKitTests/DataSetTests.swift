@@ -418,4 +418,210 @@ struct DataSetTests {
         #expect(dataSet.personName(for: .patientName) == nil)
         #expect(dataSet.personNames(for: .patientName) == nil)
     }
+    
+    // MARK: - Pagination Support Tests
+    
+    @Test("DataSet elements(from:count:) basic pagination")
+    func testDataSetElementsFromCount() {
+        // Create a data set with 5 elements
+        let elements = createTestElements(count: 5)
+        let dataSet = DataSet(elements: elements)
+        
+        // Get first 3 elements
+        let first3 = dataSet.elements(from: 0, count: 3)
+        #expect(first3.count == 3)
+        
+        // Get next 2 elements
+        let next2 = dataSet.elements(from: 3, count: 3)
+        #expect(next2.count == 2)
+    }
+    
+    @Test("DataSet elements(from:count:) with invalid parameters")
+    func testDataSetElementsFromCountInvalid() {
+        let elements = createTestElements(count: 5)
+        let dataSet = DataSet(elements: elements)
+        
+        // Negative start index
+        #expect(dataSet.elements(from: -1, count: 3).isEmpty)
+        
+        // Zero count
+        #expect(dataSet.elements(from: 0, count: 0).isEmpty)
+        
+        // Negative count
+        #expect(dataSet.elements(from: 0, count: -1).isEmpty)
+        
+        // Start beyond range
+        #expect(dataSet.elements(from: 100, count: 3).isEmpty)
+    }
+    
+    @Test("DataSet elements(page:pageSize:) pagination")
+    func testDataSetPagePagination() {
+        // Create a data set with 25 elements
+        let elements = createTestElements(count: 25)
+        let dataSet = DataSet(elements: elements)
+        
+        // Get page 0 with page size 10
+        let page0 = dataSet.elements(page: 0, pageSize: 10)
+        #expect(page0.count == 10)
+        
+        // Get page 1 with page size 10
+        let page1 = dataSet.elements(page: 1, pageSize: 10)
+        #expect(page1.count == 10)
+        
+        // Get page 2 with page size 10 (should have only 5 elements)
+        let page2 = dataSet.elements(page: 2, pageSize: 10)
+        #expect(page2.count == 5)
+        
+        // Get page 3 (should be empty)
+        let page3 = dataSet.elements(page: 3, pageSize: 10)
+        #expect(page3.isEmpty)
+    }
+    
+    @Test("DataSet elements(page:pageSize:) with invalid parameters")
+    func testDataSetPagePaginationInvalid() {
+        let elements = createTestElements(count: 5)
+        let dataSet = DataSet(elements: elements)
+        
+        // Negative page
+        #expect(dataSet.elements(page: -1, pageSize: 10).isEmpty)
+        
+        // Zero page size
+        #expect(dataSet.elements(page: 0, pageSize: 0).isEmpty)
+        
+        // Negative page size
+        #expect(dataSet.elements(page: 0, pageSize: -1).isEmpty)
+    }
+    
+    @Test("DataSet next(_:after:) pagination")
+    func testDataSetNextAfterTag() {
+        // Create a data set with known tags in order
+        let element1 = DataElement(
+            tag: Tag(group: 0x0008, element: 0x0010),
+            vr: .CS,
+            length: 3,
+            valueData: "CT ".data(using: .utf8)!
+        )
+        let element2 = DataElement(
+            tag: Tag(group: 0x0008, element: 0x0020),
+            vr: .DA,
+            length: 8,
+            valueData: "20250130".data(using: .utf8)!
+        )
+        let element3 = DataElement(
+            tag: Tag(group: 0x0008, element: 0x0030),
+            vr: .TM,
+            length: 6,
+            valueData: "120000".data(using: .utf8)!
+        )
+        let element4 = DataElement(
+            tag: Tag(group: 0x0010, element: 0x0010),
+            vr: .PN,
+            length: 8,
+            valueData: "DOE^JOHN".data(using: .utf8)!
+        )
+        let element5 = DataElement(
+            tag: Tag(group: 0x0010, element: 0x0020),
+            vr: .LO,
+            length: 6,
+            valueData: "123456".data(using: .utf8)!
+        )
+        
+        let dataSet = DataSet(elements: [element1, element2, element3, element4, element5])
+        
+        // Get next 2 elements after element2's tag
+        let next2 = dataSet.next(2, after: Tag(group: 0x0008, element: 0x0020))
+        #expect(next2.count == 2)
+        #expect(next2[0].tag == Tag(group: 0x0008, element: 0x0030))
+        #expect(next2[1].tag == Tag(group: 0x0010, element: 0x0010))
+        
+        // Get next 10 after element3 (should return only 2 remaining)
+        let remaining = dataSet.next(10, after: Tag(group: 0x0008, element: 0x0030))
+        #expect(remaining.count == 2)
+        
+        // Get next after last element (should be empty)
+        let beyondEnd = dataSet.next(10, after: Tag(group: 0x0010, element: 0x0020))
+        #expect(beyondEnd.isEmpty)
+    }
+    
+    @Test("DataSet next(_:after:) with default count")
+    func testDataSetNextDefaultCount() {
+        let elements = createTestElements(count: 15)
+        let dataSet = DataSet(elements: elements)
+        
+        // The default count should be 10
+        let first = dataSet.first()
+        let firstTag = first.last!.tag
+        
+        let next = dataSet.next(after: firstTag)
+        #expect(next.count == 5) // 15 - 10 = 5 remaining after first 10
+    }
+    
+    @Test("DataSet first(_:) method")
+    func testDataSetFirst() {
+        let elements = createTestElements(count: 25)
+        let dataSet = DataSet(elements: elements)
+        
+        // Get first 10 (default)
+        let first10 = dataSet.first()
+        #expect(first10.count == 10)
+        
+        // Get first 5
+        let first5 = dataSet.first(5)
+        #expect(first5.count == 5)
+        
+        // Get first 100 (should return all 25)
+        let firstAll = dataSet.first(100)
+        #expect(firstAll.count == 25)
+    }
+    
+    @Test("DataSet first(_:) with invalid count")
+    func testDataSetFirstInvalid() {
+        let elements = createTestElements(count: 5)
+        let dataSet = DataSet(elements: elements)
+        
+        // Zero count
+        #expect(dataSet.first(0).isEmpty)
+        
+        // Negative count
+        #expect(dataSet.first(-1).isEmpty)
+    }
+    
+    @Test("DataSet pageCount(pageSize:) calculation")
+    func testDataSetPageCount() {
+        let elements = createTestElements(count: 25)
+        let dataSet = DataSet(elements: elements)
+        
+        #expect(dataSet.pageCount(pageSize: 10) == 3)  // 25 elements / 10 = 3 pages
+        #expect(dataSet.pageCount(pageSize: 5) == 5)   // 25 elements / 5 = 5 pages
+        #expect(dataSet.pageCount(pageSize: 25) == 1)  // 25 elements / 25 = 1 page
+        #expect(dataSet.pageCount(pageSize: 30) == 1)  // 25 elements / 30 = 1 page
+        #expect(dataSet.pageCount(pageSize: 0) == 0)   // Invalid page size
+    }
+    
+    @Test("DataSet pagination on empty data set")
+    func testDataSetPaginationEmpty() {
+        let dataSet = DataSet()
+        
+        #expect(dataSet.elements(from: 0, count: 10).isEmpty)
+        #expect(dataSet.elements(page: 0, pageSize: 10).isEmpty)
+        #expect(dataSet.first().isEmpty)
+        #expect(dataSet.next(after: Tag(group: 0x0010, element: 0x0010)).isEmpty)
+        #expect(dataSet.pageCount(pageSize: 10) == 0)
+    }
+    
+    // MARK: - Test Helpers
+    
+    /// Creates test data elements with sequential tags
+    private func createTestElements(count: Int) -> [DataElement] {
+        return (0..<count).map { index in
+            let group = UInt16(0x0010 + index / 256)
+            let element = UInt16(0x0010 + (index % 256))
+            return DataElement(
+                tag: Tag(group: group, element: element),
+                vr: .LO,
+                length: 4,
+                valueData: "TEST".data(using: .utf8)!
+            )
+        }
+    }
 }

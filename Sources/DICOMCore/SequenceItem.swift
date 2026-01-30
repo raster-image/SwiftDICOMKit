@@ -63,6 +63,96 @@ public struct SequenceItem: Sendable {
     public var allElements: [DataElement] {
         return tags.compactMap { elements[$0] }
     }
+    
+    // MARK: - Pagination Support
+    
+    /// Returns a specified number of elements starting from an offset
+    ///
+    /// Retrieves elements in tag-sorted order, useful for paginating through
+    /// sequence item data. Elements are sorted by their DICOM tag values.
+    ///
+    /// - Parameters:
+    ///   - startIndex: The zero-based index to start from
+    ///   - count: Maximum number of elements to return
+    /// - Returns: Array of data elements, may be fewer than count if near end of item
+    public func elements(from startIndex: Int, count: Int) -> [DataElement] {
+        guard startIndex >= 0, count > 0 else {
+            return []
+        }
+        
+        let sortedElements = allElements
+        let endIndex = Swift.min(startIndex + count, sortedElements.count)
+        
+        guard startIndex < sortedElements.count else {
+            return []
+        }
+        
+        return Array(sortedElements[startIndex..<endIndex])
+    }
+    
+    /// Returns elements for a specific page with a given page size
+    ///
+    /// Provides page-based access to data elements sorted by tag order.
+    /// Page numbering starts at 0.
+    ///
+    /// - Parameters:
+    ///   - page: Zero-based page number
+    ///   - pageSize: Number of elements per page
+    /// - Returns: Array of data elements for the requested page
+    public func elements(page: Int, pageSize: Int) -> [DataElement] {
+        guard page >= 0, pageSize > 0 else {
+            return []
+        }
+        
+        let startIndex = page * pageSize
+        return elements(from: startIndex, count: pageSize)
+    }
+    
+    /// Returns the next batch of elements starting from a given tag
+    ///
+    /// Retrieves up to the specified number of elements that come after the given tag
+    /// in the standard DICOM tag ordering.
+    ///
+    /// - Parameters:
+    ///   - tag: The tag to start after (exclusive)
+    ///   - count: Maximum number of elements to return (default: 10)
+    /// - Returns: Array of data elements following the specified tag
+    public func next(_ count: Int = 10, after tag: Tag) -> [DataElement] {
+        guard count > 0 else {
+            return []
+        }
+        
+        let sortedElements = allElements
+        
+        // Find the index of the element after the given tag
+        guard let startIndex = sortedElements.firstIndex(where: { $0.tag > tag }) else {
+            return []
+        }
+        
+        let endIndex = Swift.min(startIndex + count, sortedElements.count)
+        return Array(sortedElements[startIndex..<endIndex])
+    }
+    
+    /// Returns the first batch of elements from the sequence item
+    ///
+    /// Convenience method to get the first N elements in tag order.
+    ///
+    /// - Parameter count: Maximum number of elements to return (default: 10)
+    /// - Returns: Array of the first data elements
+    public func first(_ count: Int = 10) -> [DataElement] {
+        return elements(from: 0, count: count)
+    }
+    
+    /// Returns the total number of pages for a given page size
+    ///
+    /// - Parameter pageSize: Number of elements per page
+    /// - Returns: Total number of pages needed to display all elements
+    public func pageCount(pageSize: Int) -> Int {
+        guard pageSize > 0 else {
+            return 0
+        }
+        return (count + pageSize - 1) / pageSize
+    }
 }
 
 // MARK: - Sequence Delimiter Tags
