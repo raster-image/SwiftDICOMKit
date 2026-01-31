@@ -155,18 +155,86 @@ These features may be added in future versions. See [MILESTONES.md](MILESTONES.m
 
 ### Swift Package Manager
 
-Add DICOMKit to your `Package.swift`:
+DICOMKit is distributed via Swift Package Manager (SPM). You can add it to your project in two ways:
 
-```swift
-dependencies: [
-    .package(url: "https://github.com/raster-image/DICOMKit.git", from: "0.5.0")
-]
+> **⚠️ Important**: DICOMKit is a **Swift Package**, not a Package Collection. Use **"Add Package Dependencies"** in Xcode, not "Add Package Collection".
+
+#### Option 1: Using Xcode UI (Recommended for App Projects)
+
+1. Open your project in Xcode
+2. Select your **project** in the Navigator (not a target)
+3. Go to the **Package Dependencies** tab
+4. Click the **+** button (or use **File → Add Package Dependencies...**)
+5. In the search field at the top right, enter the repository URL:
+   ```
+   https://github.com/raster-image/DICOMKit.git
+   ```
+6. For **Dependency Rule**, select one of:
+   - **Up to Next Major Version**: `0.7.0` (recommended)
+   - **Exact Version**: `0.7.7` (for pinning)
+   - **Branch**: `main` (for latest development)
+7. Click **Add Package**
+8. Select the libraries you need:
+   | Library | Description |
+   |---------|-------------|
+   | **DICOMKit** | Full functionality - includes all modules (recommended) |
+   | **DICOMCore** | Core types (Tag, VR, DataElement, transfer syntaxes) |
+   | **DICOMDictionary** | DICOM data dictionary lookup |
+   | **DICOMNetwork** | PACS connectivity (C-ECHO, C-FIND, C-MOVE, C-GET, C-STORE) |
+9. Click **Add Package**
+
+##### Troubleshooting
+
+If you see the error:
+```
+Received invalid response at https://github.com/raster-image/DICOMKit.git.
+Please make sure it is a package collection URL.
 ```
 
-Or add it through Xcode:
-1. File → Add Package Dependencies
-2. Enter: `https://github.com/raster-image/DICOMKit`
-3. Select version 0.5.0 or later
+This means you used **"Add Package Collection"** instead of **"Add Package Dependencies"**. Use **File → Add Package Dependencies...** (not "Add Package Collection").
+
+#### Option 2: Using Package.swift (For SPM Projects)
+
+Add DICOMKit to your `Package.swift` dependencies:
+
+```swift
+// swift-tools-version: 5.9
+import PackageDescription
+
+let package = Package(
+    name: "YourPackage",
+    platforms: [
+        .iOS(.v17),
+        .macOS(.v14),
+        .visionOS(.v1)
+    ],
+    dependencies: [
+        .package(url: "https://github.com/raster-image/DICOMKit.git", from: "0.7.0")
+    ],
+    targets: [
+        .target(
+            name: "YourTarget",
+            dependencies: [
+                .product(name: "DICOMKit", package: "DICOMKit"),
+                // Or include specific modules:
+                // .product(name: "DICOMCore", package: "DICOMKit"),
+                // .product(name: "DICOMNetwork", package: "DICOMKit"),
+            ]
+        )
+    ]
+)
+```
+
+#### Verify Installation
+
+After adding the package, import it in your Swift file:
+
+```swift
+import DICOMKit
+
+// Verify it works
+print("DICOMKit loaded successfully!")
+```
 
 ## Quick Start
 
@@ -1293,6 +1361,19 @@ DICOMKit implements:
 - **DICOM PS3.15 2025e** - Security and System Management Profiles (TLS support)
 
 All parsing behavior is documented with PS3.5 section references. We do not translate implementations from other toolkits (DCMTK, pydicom, fo-dicom) - all behavior is derived directly from the DICOM standard.
+
+## Example Application
+
+DICOMKit includes a complete example application demonstrating PACS connectivity:
+
+**DICOMViewer** (`Examples/DICOMViewer/`) - A SwiftUI application showcasing:
+- PACS server configuration and management
+- C-ECHO connection testing
+- Patient search with wildcards (C-FIND)
+- Study and Series hierarchy navigation
+- Cross-platform support (iOS, macOS, visionOS)
+
+See the [DICOMViewer README](Examples/DICOMViewer/README.md) for detailed setup instructions.
 
 ## Contributing
 
