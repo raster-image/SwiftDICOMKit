@@ -831,14 +831,14 @@ This milestone is divided into modular sub-milestones based on complexity, allow
   - [x] Integration with existing `ErrorCategory` and `CircuitBreaker`
   - [ ] Dead letter queue for undeliverable files (deferred to store-and-forward)
 - [ ] Store-and-Forward:
-  - [ ] Queue files for later delivery
-  - [ ] Persistent queue (survives app restart)
-  - [ ] Automatic retry on connectivity restoration
-  - [ ] Queue management API (pause, resume, clear)
-- [ ] Compression Optimization:
-  - [ ] On-the-fly compression for network efficiency
-  - [ ] Configurable compression level vs. speed tradeoff
-  - [ ] Support for JPEG, JPEG 2000, JPEG-LS compression
+  - [x] Queue files for later delivery
+  - [x] Persistent queue (survives app restart)
+  - [x] Automatic retry on connectivity restoration
+  - [x] Queue management API (pause, resume, clear)
+- [x] Compression Optimization:
+  - [x] On-the-fly compression for network efficiency
+  - [x] Configurable compression level vs. speed tradeoff
+  - [x] Support for JPEG, JPEG 2000 compression (JPEG-LS not supported by ImageIO)
 - [ ] Bandwidth Management:
   - [ ] Rate limiting per connection
   - [ ] Bandwidth scheduling (e.g., off-peak transfers)

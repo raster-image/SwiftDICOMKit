@@ -270,7 +270,7 @@ public struct DICOMClientConfiguration: Sendable, Hashable {
         implementationClassUID: String = defaultImplementationClassUID,
         implementationVersionName: String? = defaultImplementationVersionName,
         tlsEnabled: Bool = false,
-        retryPolicy: RetryPolicy = .none,
+        retryPolicy: RetryPolicy = .noRetry,
         circuitBreakerConfiguration: CircuitBreakerConfiguration? = nil,
         userIdentity: UserIdentity? = nil
     ) throws {
@@ -314,7 +314,7 @@ public struct DICOMClientConfiguration: Sendable, Hashable {
         implementationClassUID: String = defaultImplementationClassUID,
         implementationVersionName: String? = defaultImplementationVersionName,
         tlsConfiguration: TLSConfiguration?,
-        retryPolicy: RetryPolicy = .none,
+        retryPolicy: RetryPolicy = .noRetry,
         circuitBreakerConfiguration: CircuitBreakerConfiguration? = nil,
         userIdentity: UserIdentity? = nil
     ) throws {
@@ -357,7 +357,7 @@ public struct DICOMClientConfiguration: Sendable, Hashable {
         implementationClassUID: String = defaultImplementationClassUID,
         implementationVersionName: String? = defaultImplementationVersionName,
         tlsEnabled: Bool = false,
-        retryPolicy: RetryPolicy = .none,
+        retryPolicy: RetryPolicy = .noRetry,
         circuitBreakerConfiguration: CircuitBreakerConfiguration? = nil,
         userIdentity: UserIdentity? = nil
     ) {
@@ -400,7 +400,7 @@ public struct DICOMClientConfiguration: Sendable, Hashable {
         implementationClassUID: String = defaultImplementationClassUID,
         implementationVersionName: String? = defaultImplementationVersionName,
         tlsConfiguration: TLSConfiguration?,
-        retryPolicy: RetryPolicy = .none,
+        retryPolicy: RetryPolicy = .noRetry,
         circuitBreakerConfiguration: CircuitBreakerConfiguration? = nil,
         userIdentity: UserIdentity? = nil
     ) {
@@ -416,124 +416,6 @@ public struct DICOMClientConfiguration: Sendable, Hashable {
         self.retryPolicy = retryPolicy
         self.circuitBreakerConfiguration = circuitBreakerConfiguration
         self.userIdentity = userIdentity
-    }
-}
-
-// MARK: - Retry Policy
-
-/// Policy for retrying failed network operations
-///
-/// Defines how many times and with what delay network operations should be retried.
-///
-/// ## Usage
-///
-/// ```swift
-/// // No retries
-/// let noRetry = RetryPolicy.none
-///
-/// // Fixed delay retries
-/// let fixedRetry = RetryPolicy.fixed(maxRetries: 3, delay: 1.0)
-///
-/// // Exponential backoff
-/// let exponentialRetry = RetryPolicy.exponentialBackoff(
-///     maxRetries: 5,
-///     initialDelay: 0.5,
-///     maxDelay: 30.0,
-///     multiplier: 2.0
-/// )
-/// ```
-public struct RetryPolicy: Sendable, Hashable {
-    /// Maximum number of retry attempts
-    public let maxRetries: Int
-    
-    /// Initial delay before first retry (in seconds)
-    public let initialDelay: TimeInterval
-    
-    /// Maximum delay between retries (in seconds)
-    public let maxDelay: TimeInterval
-    
-    /// Multiplier for exponential backoff
-    public let multiplier: Double
-    
-    /// Whether this policy allows any retries
-    public var allowsRetries: Bool {
-        maxRetries > 0
-    }
-    
-    /// Creates a custom retry policy
-    ///
-    /// - Parameters:
-    ///   - maxRetries: Maximum number of retry attempts
-    ///   - initialDelay: Initial delay before first retry
-    ///   - maxDelay: Maximum delay between retries
-    ///   - multiplier: Multiplier for exponential backoff (1.0 for fixed delay)
-    public init(
-        maxRetries: Int,
-        initialDelay: TimeInterval,
-        maxDelay: TimeInterval,
-        multiplier: Double = 1.0
-    ) {
-        self.maxRetries = max(0, maxRetries)
-        let normalizedInitialDelay = max(0, initialDelay)
-        self.initialDelay = normalizedInitialDelay
-        self.maxDelay = max(normalizedInitialDelay, max(0, maxDelay))
-        self.multiplier = max(1.0, multiplier)
-    }
-    
-    /// No retry policy - operations fail immediately on first error
-    public static let none = RetryPolicy(
-        maxRetries: 0,
-        initialDelay: 0,
-        maxDelay: 0
-    )
-    
-    /// Creates a fixed-delay retry policy
-    ///
-    /// - Parameters:
-    ///   - maxRetries: Maximum number of retry attempts
-    ///   - delay: Fixed delay between retries in seconds
-    /// - Returns: A retry policy with fixed delays
-    public static func fixed(maxRetries: Int, delay: TimeInterval) -> RetryPolicy {
-        RetryPolicy(
-            maxRetries: maxRetries,
-            initialDelay: delay,
-            maxDelay: delay,
-            multiplier: 1.0
-        )
-    }
-    
-    /// Creates an exponential backoff retry policy
-    ///
-    /// Each retry attempt waits longer than the previous, up to maxDelay.
-    ///
-    /// - Parameters:
-    ///   - maxRetries: Maximum number of retry attempts
-    ///   - initialDelay: Initial delay before first retry (default: 0.5 seconds)
-    ///   - maxDelay: Maximum delay between retries (default: 30 seconds)
-    ///   - multiplier: Multiplier for each retry (default: 2.0)
-    /// - Returns: A retry policy with exponential backoff
-    public static func exponentialBackoff(
-        maxRetries: Int,
-        initialDelay: TimeInterval = 0.5,
-        maxDelay: TimeInterval = 30.0,
-        multiplier: Double = 2.0
-    ) -> RetryPolicy {
-        RetryPolicy(
-            maxRetries: maxRetries,
-            initialDelay: initialDelay,
-            maxDelay: maxDelay,
-            multiplier: multiplier
-        )
-    }
-    
-    /// Calculates the delay for a specific retry attempt
-    ///
-    /// - Parameter attempt: The retry attempt number (0-based)
-    /// - Returns: The delay in seconds before this retry attempt
-    public func delay(forAttempt attempt: Int) -> TimeInterval {
-        guard attempt > 0 else { return 0 }
-        let exponentialDelay = initialDelay * pow(multiplier, Double(attempt - 1))
-        return min(exponentialDelay, maxDelay)
     }
 }
 
@@ -626,7 +508,7 @@ public final class DICOMClient: Sendable {
         callingAE: String,
         calledAE: String,
         timeout: TimeInterval = 30,
-        retryPolicy: RetryPolicy = .none,
+        retryPolicy: RetryPolicy = .noRetry,
         circuitBreakerConfiguration: CircuitBreakerConfiguration? = nil
     ) throws {
         let config = try DICOMClientConfiguration(
@@ -759,7 +641,7 @@ public final class DICOMClient: Sendable {
     public func moveStudy(
         studyInstanceUID: String,
         moveDestination: String,
-        onProgress: ((RetrieveProgress) -> Void)? = nil
+        onProgress: (@Sendable (RetrieveProgress) -> Void)? = nil
     ) async throws -> RetrieveResult {
         try await withRetry {
             try await DICOMRetrieveService.moveStudy(
@@ -769,8 +651,8 @@ public final class DICOMClient: Sendable {
                 calledAE: self.configuration.calledAETitle.value,
                 studyInstanceUID: studyInstanceUID,
                 moveDestination: moveDestination,
-                timeout: self.configuration.timeout,
-                onProgress: onProgress
+                onProgress: onProgress,
+                timeout: self.configuration.timeout
             )
         }
     }
@@ -788,7 +670,7 @@ public final class DICOMClient: Sendable {
         studyInstanceUID: String,
         seriesInstanceUID: String,
         moveDestination: String,
-        onProgress: ((RetrieveProgress) -> Void)? = nil
+        onProgress: (@Sendable (RetrieveProgress) -> Void)? = nil
     ) async throws -> RetrieveResult {
         try await withRetry {
             try await DICOMRetrieveService.moveSeries(
@@ -799,8 +681,8 @@ public final class DICOMClient: Sendable {
                 studyInstanceUID: studyInstanceUID,
                 seriesInstanceUID: seriesInstanceUID,
                 moveDestination: moveDestination,
-                timeout: self.configuration.timeout,
-                onProgress: onProgress
+                onProgress: onProgress,
+                timeout: self.configuration.timeout
             )
         }
     }
@@ -820,7 +702,7 @@ public final class DICOMClient: Sendable {
         seriesInstanceUID: String,
         sopInstanceUID: String,
         moveDestination: String,
-        onProgress: ((RetrieveProgress) -> Void)? = nil
+        onProgress: (@Sendable (RetrieveProgress) -> Void)? = nil
     ) async throws -> RetrieveResult {
         try await withRetry {
             try await DICOMRetrieveService.moveInstance(
@@ -832,8 +714,8 @@ public final class DICOMClient: Sendable {
                 seriesInstanceUID: seriesInstanceUID,
                 sopInstanceUID: sopInstanceUID,
                 moveDestination: moveDestination,
-                timeout: self.configuration.timeout,
-                onProgress: onProgress
+                onProgress: onProgress,
+                timeout: self.configuration.timeout
             )
         }
     }
@@ -850,7 +732,7 @@ public final class DICOMClient: Sendable {
     /// - Throws: `DICOMNetworkError` for connection or protocol errors
     public func getStudy(
         studyInstanceUID: String
-    ) async throws -> AsyncThrowingStream<RetrieveEvent, Error> {
+    ) async throws -> AsyncStream<DICOMRetrieveService.GetEvent> {
         // Note: C-GET operations are not retried since they return a stream
         // Individual failures are reported through the stream
         try await DICOMRetrieveService.getStudy(
@@ -873,7 +755,7 @@ public final class DICOMClient: Sendable {
     public func getSeries(
         studyInstanceUID: String,
         seriesInstanceUID: String
-    ) async throws -> AsyncThrowingStream<RetrieveEvent, Error> {
+    ) async throws -> AsyncStream<DICOMRetrieveService.GetEvent> {
         try await DICOMRetrieveService.getSeries(
             host: configuration.host,
             port: configuration.port,
@@ -897,7 +779,7 @@ public final class DICOMClient: Sendable {
         studyInstanceUID: String,
         seriesInstanceUID: String,
         sopInstanceUID: String
-    ) async throws -> AsyncThrowingStream<RetrieveEvent, Error> {
+    ) async throws -> AsyncStream<DICOMRetrieveService.GetEvent> {
         try await DICOMRetrieveService.getInstance(
             host: configuration.host,
             port: configuration.port,
@@ -1048,7 +930,7 @@ public final class DICOMClient: Sendable {
         
         var lastError: Error?
         
-        for attempt in 0...policy.maxRetries {
+        for attempt in 0...policy.maxAttempts {
             do {
                 // Wait before retry (no wait on first attempt)
                 if attempt > 0 {
@@ -1080,7 +962,7 @@ public final class DICOMClient: Sendable {
                 }
                 
                 // If this was the last attempt, throw the error
-                if attempt == policy.maxRetries {
+                if attempt == policy.maxAttempts {
                     throw error
                 }
             }
@@ -1104,6 +986,9 @@ public final class DICOMClient: Sendable {
         case .connectionFailed, .timeout, .connectionClosed, .artimTimerExpired:
             // Connection-level failures should trip the circuit
             return true
+        case .operationTimeout:
+            // Operation timeouts are connection-level failures
+            return true
         case .associationRejected(let result, _, _):
             // Only transient rejections are considered server failures
             return result == .rejectedTransient
@@ -1111,7 +996,7 @@ public final class DICOMClient: Sendable {
              .sopClassNotSupported, .unexpectedPDUType, .invalidPDU,
              .encodingFailed, .decodingFailed, .pduTooLarge,
              .associationAborted, .queryFailed, .retrieveFailed,
-             .circuitBreakerOpen:
+             .circuitBreakerOpen, .storeFailed, .partialFailure:
             // Client-side or protocol errors shouldn't affect circuit breaker
             return false
         }
@@ -1134,7 +1019,7 @@ public final class DICOMClient: Sendable {
         case .associationRejected(let result, _, _):
             // Retry only transient rejections
             return result == .rejectedTransient
-        case .artimTimerExpired:
+        case .artimTimerExpired, .operationTimeout:
             // Timeout waiting for response - retry
             return true
         case .invalidAETitle, .invalidState, .noPresentationContextAccepted,
@@ -1142,11 +1027,14 @@ public final class DICOMClient: Sendable {
              .encodingFailed, .decodingFailed, .pduTooLarge:
             // Protocol/configuration errors - don't retry
             return false
-        case .associationAborted, .queryFailed, .retrieveFailed:
+        case .associationAborted, .queryFailed, .retrieveFailed, .storeFailed:
             // Application-level failures - don't retry
             return false
         case .circuitBreakerOpen:
             // Circuit is open - don't retry
+            return false
+        case .partialFailure:
+            // Partial failures shouldn't be retried as some operations succeeded
             return false
         }
     }
@@ -1180,7 +1068,7 @@ extension DICOMClient: CustomStringConvertible {
           Calling AE: \(configuration.callingAETitle)
           Called AE: \(configuration.calledAETitle)
           TLS: \(configuration.tlsEnabled)
-          Retry: \(configuration.retryPolicy.maxRetries) attempts
+          Retry: \(configuration.retryPolicy.maxAttempts) attempts
           Circuit Breaker: \(configuration.circuitBreakerEnabled ? "enabled" : "disabled")
         """
     }

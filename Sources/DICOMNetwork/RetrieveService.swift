@@ -377,7 +377,7 @@ public enum DICOMRetrieveService {
         calledAE: String,
         studyInstanceUID: String,
         moveDestination: String,
-        onProgress: ((RetrieveProgress) -> Void)? = nil,
+        onProgress: (@Sendable (RetrieveProgress) -> Void)? = nil,
         timeout: TimeInterval = 60
     ) async throws -> RetrieveResult {
         let callingAETitle = try AETitle(callingAE)
@@ -423,7 +423,7 @@ public enum DICOMRetrieveService {
         studyInstanceUID: String,
         seriesInstanceUID: String,
         moveDestination: String,
-        onProgress: ((RetrieveProgress) -> Void)? = nil,
+        onProgress: (@Sendable (RetrieveProgress) -> Void)? = nil,
         timeout: TimeInterval = 60
     ) async throws -> RetrieveResult {
         let callingAETitle = try AETitle(callingAE)
@@ -471,7 +471,7 @@ public enum DICOMRetrieveService {
         seriesInstanceUID: String,
         sopInstanceUID: String,
         moveDestination: String,
-        onProgress: ((RetrieveProgress) -> Void)? = nil,
+        onProgress: (@Sendable (RetrieveProgress) -> Void)? = nil,
         timeout: TimeInterval = 60
     ) async throws -> RetrieveResult {
         let callingAETitle = try AETitle(callingAE)
@@ -658,7 +658,7 @@ public enum DICOMRetrieveService {
         configuration: RetrieveConfiguration,
         keys: RetrieveKeys,
         moveDestination: String,
-        onProgress: ((RetrieveProgress) -> Void)?
+        onProgress: (@Sendable (RetrieveProgress) -> Void)?
     ) async throws -> RetrieveResult {
         
         // Validate that the level is supported by the information model
@@ -741,7 +741,7 @@ public enum DICOMRetrieveService {
         moveDestination: String,
         transferSyntax: String,
         sopClassUID: String,
-        onProgress: ((RetrieveProgress) -> Void)?
+        onProgress: (@Sendable (RetrieveProgress) -> Void)?
     ) async throws -> RetrieveResult {
         // Build the retrieve identifier data set
         let identifierData = buildRetrieveIdentifier(keys: keys, transferSyntax: transferSyntax)
@@ -771,7 +771,6 @@ public enum DICOMRetrieveService {
         }
         
         // Receive responses
-        var lastProgress = RetrieveProgress()
         let assembler = MessageAssembler()
         
         while true {
@@ -786,7 +785,6 @@ public enum DICOMRetrieveService {
                 
                 // Update progress
                 let progress = RetrieveProgress(from: moveResponse)
-                lastProgress = progress
                 onProgress?(progress)
                 
                 // Check the status
@@ -964,7 +962,6 @@ public enum DICOMRetrieveService {
         }
         
         // Receive responses and C-STORE sub-operations
-        var lastProgress = RetrieveProgress()
         let assembler = MessageAssembler()
         
         while true {
@@ -980,7 +977,6 @@ public enum DICOMRetrieveService {
                     
                     // Update progress
                     let progress = RetrieveProgress(from: getResponse)
-                    lastProgress = progress
                     continuation.yield(.progress(progress))
                     
                     // Check the status
