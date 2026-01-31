@@ -127,15 +127,15 @@ public struct TLSConfiguration: Sendable, Hashable {
         let options = NWProtocolTLS.Options()
         let secOptions = options.securityProtocolOptions
         
-        // Set minimum TLS version
-        sec_protocol_options_set_tls_min_version(
+        // Set minimum TLS version using the modern API
+        sec_protocol_options_set_min_tls_protocol_version(
             secOptions,
             minimumVersion.secProtocolVersion
         )
         
         // Set maximum TLS version if specified
         if let maxVersion = maximumVersion {
-            sec_protocol_options_set_tls_max_version(
+            sec_protocol_options_set_max_tls_protocol_version(
                 secOptions,
                 maxVersion.secProtocolVersion
             )
