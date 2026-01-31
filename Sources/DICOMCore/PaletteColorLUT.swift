@@ -130,10 +130,10 @@ public struct PaletteColorLUT: Sendable, Equatable {
         let green16 = greenLUT[greenIndex]
         let blue16 = blueLUT[blueIndex]
         
-        // Normalize to 8-bit based on the descriptor's bits per entry
-        let red8 = normalize(red16, bitsPerEntry: redDescriptor.bitsPerEntry)
-        let green8 = normalize(green16, bitsPerEntry: greenDescriptor.bitsPerEntry)
-        let blue8 = normalize(blue16, bitsPerEntry: blueDescriptor.bitsPerEntry)
+        // Normalize to 8-bit
+        let red8 = normalize(red16)
+        let green8 = normalize(green16)
+        let blue8 = normalize(blue16)
         
         return (red8, green8, blue8)
     }
@@ -145,14 +145,13 @@ public struct PaletteColorLUT: Sendable, Equatable {
     }
     
     /// Normalizes a 16-bit LUT value to 8-bit
-    private func normalize(_ value: UInt16, bitsPerEntry: Int) -> UInt8 {
-        if bitsPerEntry == 8 {
-            // 8-bit values are stored in the high byte per DICOM
-            return UInt8(value >> 8)
-        } else {
-            // 16-bit values need to be scaled to 8-bit
-            return UInt8(value >> 8)
-        }
+    ///
+    /// Per DICOM PS3.3 C.7.6.3.1.5, LUT entries are stored as 16-bit values
+    /// with the significant data in the high byte. This applies to both
+    /// 8-bit and 16-bit LUT data.
+    private func normalize(_ value: UInt16) -> UInt8 {
+        // High byte contains the significant data for both 8-bit and 16-bit LUTs
+        return UInt8(value >> 8)
     }
     
     /// Parses LUT data from raw DICOM data
