@@ -146,7 +146,8 @@ final class DICOMClientRetryPolicyTests: XCTestCase {
             strategy: .fixed
         )
         
-        // All attempts should have the same delay with fixed strategy
+        // With fixed strategy, delay(forAttempt:) returns the same delay for all attempts
+        // The attempt number represents the retry attempt (0 = first retry, 1 = second retry, etc.)
         XCTAssertEqual(policy.delay(forAttempt: 0), 1.5)
         XCTAssertEqual(policy.delay(forAttempt: 1), 1.5)
         XCTAssertEqual(policy.delay(forAttempt: 2), 1.5)
@@ -175,14 +176,16 @@ final class DICOMClientRetryPolicyTests: XCTestCase {
             strategy: .exponential(factor: 2.0)
         )
         
-        // Exponential growth: 0.5, 1.0, 2.0, 4.0, 8.0, then capped at 10
+        // Exponential backoff: delay = initialDelay * (factor ^ attempt)
+        // The attempt number represents the retry attempt (0 = first retry, 1 = second retry, etc.)
+        // Sequence: 0.5 (attempt 0), 1.0 (attempt 1), 2.0 (attempt 2), 4.0 (attempt 3), 8.0 (attempt 4), then capped at maxDelay
         XCTAssertEqual(policy.delay(forAttempt: 0), 0.5, accuracy: 0.001)
         XCTAssertEqual(policy.delay(forAttempt: 1), 1.0, accuracy: 0.001)
         XCTAssertEqual(policy.delay(forAttempt: 2), 2.0, accuracy: 0.001)
         XCTAssertEqual(policy.delay(forAttempt: 3), 4.0, accuracy: 0.001)
         XCTAssertEqual(policy.delay(forAttempt: 4), 8.0, accuracy: 0.001)
-        XCTAssertEqual(policy.delay(forAttempt: 5), 10.0, accuracy: 0.001)  // Capped
-        XCTAssertEqual(policy.delay(forAttempt: 6), 10.0, accuracy: 0.001)  // Capped
+        XCTAssertEqual(policy.delay(forAttempt: 5), 10.0, accuracy: 0.001)  // Capped at maxDelay
+        XCTAssertEqual(policy.delay(forAttempt: 6), 10.0, accuracy: 0.001)  // Capped at maxDelay
     }
     
     func test_aggressivePolicy() {
@@ -214,10 +217,24 @@ final class DICOMClientRetryPolicyTests: XCTestCase {
             maxDelay: -10
         )
         
-        // Negative values should be normalized
+        // Negative values should be normalized to valid minimums:
+        // - maxAttempts: minimum is 0
+        // - initialDelay: minimum is 0.1 seconds
+        // - maxDelay: must be >= initialDelay
         XCTAssertEqual(policy.maxAttempts, 0)
-        XCTAssertEqual(policy.initialDelay, 0.1)  // Minimum is 0.1
+        XCTAssertEqual(policy.initialDelay, 0.1)
         XCTAssertGreaterThanOrEqual(policy.maxDelay, policy.initialDelay)
+    }
+    
+    func test_policy_minimumInitialDelay() {
+        // Test that very small positive values are also normalized to minimum 0.1
+        let policy = RetryPolicy(
+            maxAttempts: 3,
+            initialDelay: 0.01,  // Below minimum
+            maxDelay: 5.0
+        )
+        
+        XCTAssertEqual(policy.initialDelay, 0.1)  // Enforced minimum is 0.1 seconds
     }
     
     func test_policy_hashable() {
