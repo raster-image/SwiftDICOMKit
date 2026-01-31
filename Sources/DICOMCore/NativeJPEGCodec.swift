@@ -274,11 +274,14 @@ public struct NativeJPEGCodec: ImageCodec, ImageEncoder, Sendable {
             throw DICOMError.parsingFailed("Failed to create data provider for encoding")
         }
         
+        // For RGBA, bits per pixel is 4 channels * bits per component
+        let bitsPerPixel = samplesPerPixel == 1 ? bitsPerComponent : 4 * bitsPerComponent
+        
         guard let cgImage = CGImage(
             width: width,
             height: height,
             bitsPerComponent: bitsPerComponent,
-            bitsPerPixel: samplesPerPixel == 1 ? bitsPerComponent : 32,
+            bitsPerPixel: bitsPerPixel,
             bytesPerRow: bytesPerRow,
             space: colorSpace,
             bitmapInfo: bitmapInfo,

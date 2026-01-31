@@ -7,16 +7,16 @@ import Foundation
 /// Controls the tradeoff between compression ratio and image quality.
 /// Higher quality results in larger file sizes but better visual fidelity.
 public enum CompressionQuality: Sendable, Hashable, Codable {
-    /// Maximum quality, minimal compression (quality ~0.95-1.0)
+    /// Maximum quality, minimal compression (quality 0.98)
     case maximum
     
-    /// High quality with good compression (quality ~0.85-0.95)
+    /// High quality with good compression (quality 0.90)
     case high
     
-    /// Medium quality for balanced results (quality ~0.70-0.85)
+    /// Medium quality for balanced results (quality 0.75)
     case medium
     
-    /// Lower quality for maximum compression (quality ~0.50-0.70)
+    /// Lower quality for maximum compression (quality 0.60)
     case low
     
     /// Custom quality value (0.0 to 1.0, where 1.0 is highest quality)
