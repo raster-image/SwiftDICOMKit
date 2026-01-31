@@ -665,7 +665,7 @@ actor CommitmentSCPAssociation {
                 affectedSOPClassUID: request.requestedSOPClassUID,
                 affectedSOPInstanceUID: request.requestedSOPInstanceUID,
                 actionTypeID: request.actionTypeID,
-                status: .failedSOPClassNotSupported,
+                status: .refusedSOPClassNotSupported,
                 presentationContextID: message.presentationContextID
             )
             try await sendDIMSEResponse(response)
@@ -678,7 +678,7 @@ actor CommitmentSCPAssociation {
                 affectedSOPClassUID: request.requestedSOPClassUID,
                 affectedSOPInstanceUID: request.requestedSOPInstanceUID,
                 actionTypeID: request.actionTypeID,
-                status: .failedNoSuchAction,
+                status: .failedUnableToProcess,
                 presentationContextID: message.presentationContextID
             )
             try await sendDIMSEResponse(response)
