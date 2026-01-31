@@ -967,7 +967,7 @@ public enum DICOMStorageService {
         let association = Association(configuration: associationConfig)
         
         do {
-            let negotiated = try await association.request(presentationContexts: presentationContexts)
+            var negotiated = try await association.request(presentationContexts: presentationContexts)
             
             var filesStoredOnAssociation = 0
             var messageID: UInt16 = 1
@@ -981,10 +981,9 @@ public enum DICOMStorageService {
                    filesStoredOnAssociation >= batchConfiguration.maxFilesPerAssociation {
                     // Release current association and create new one
                     try? await association.release()
-                    let newAssociationResult = try await association.request(presentationContexts: presentationContexts)
+                    negotiated = try await association.request(presentationContexts: presentationContexts)
                     filesStoredOnAssociation = 0
                     messageID = 1
-                    _ = newAssociationResult // Use the new negotiated result
                 }
                 
                 // Add delay if configured
@@ -1052,6 +1051,9 @@ public enum DICOMStorageService {
                     )
                     fileResults.append(fileResult)
                     
+                    // Categorize by status: warnings are counted separately from pure successes
+                    // Both warnings and pure successes have FileStoreResult.success = true
+                    // but are tracked in different counters for reporting purposes
                     if response.status.isWarning {
                         warnings += 1
                     } else if isSuccess {
