@@ -507,7 +507,7 @@ final class StorageServiceTests: XCTestCase {
         XCTAssertTrue(commonStorageSOPClassUIDs.contains("1.2.840.10008.5.1.4.1.1.4"))
     }
     
-    func testCommonStorageSOPClassUIDsIncludesSecondaryCaptue() {
+    func testCommonStorageSOPClassUIDsIncludesSecondaryCapture() {
         // Secondary Capture Image Storage
         XCTAssertTrue(commonStorageSOPClassUIDs.contains("1.2.840.10008.5.1.4.1.1.7"))
     }
