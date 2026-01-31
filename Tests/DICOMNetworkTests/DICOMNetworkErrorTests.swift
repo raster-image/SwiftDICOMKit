@@ -5,6 +5,11 @@ import Foundation
 @Suite("DICOM Network Error Tests")
 struct DICOMNetworkErrorTests {
     
+    /// Helper date in the future for circuit breaker tests
+    private static func futureDate(secondsFromNow: TimeInterval = 60) -> Date {
+        Date(timeIntervalSinceNow: secondsFromNow)
+    }
+    
     @Test("Error descriptions are informative")
     func testErrorDescriptions() {
         let connectionError = DICOMNetworkError.connectionFailed("Host unreachable")
@@ -168,7 +173,7 @@ struct DICOMNetworkErrorTests {
         #expect(DICOMNetworkError.operationTimeout(type: .connect, duration: 30, operation: nil).category == .timeout)
         
         // Resource errors
-        let futureDate = Date(timeIntervalSinceNow: 60)
+        let futureDate = Self.futureDate()
         #expect(DICOMNetworkError.circuitBreakerOpen(host: "host", port: 104, retryAfter: futureDate).category == .resource)
     }
     
@@ -202,7 +207,7 @@ struct DICOMNetworkErrorTests {
         #expect(DICOMNetworkError.associationAborted(source: .serviceUser, reason: 0).isRetryable == true)
         #expect(DICOMNetworkError.operationTimeout(type: .read, duration: 30, operation: nil).isRetryable == true)
         
-        let futureDate = Date(timeIntervalSinceNow: 60)
+        let futureDate = Self.futureDate()
         #expect(DICOMNetworkError.circuitBreakerOpen(host: "host", port: 104, retryAfter: futureDate).isRetryable == true)
         
         // Non-retryable errors
@@ -275,7 +280,7 @@ struct DICOMNetworkErrorTests {
         }
         
         // Circuit breaker should suggest wait and retry
-        let futureDate = Date(timeIntervalSinceNow: 60)
+        let futureDate = Self.futureDate()
         if case .waitAndRetry = DICOMNetworkError.circuitBreakerOpen(host: "host", port: 104, retryAfter: futureDate).recoverySuggestion {
             // Expected
         } else {
@@ -311,7 +316,7 @@ struct DICOMNetworkErrorTests {
         #expect(rejectError.explanation.contains("Service User"))
         
         // Circuit breaker
-        let futureDate = Date(timeIntervalSinceNow: 60)
+        let futureDate = Self.futureDate()
         let cbError = DICOMNetworkError.circuitBreakerOpen(host: "pacs.example.com", port: 104, retryAfter: futureDate)
         #expect(cbError.explanation.contains("circuit breaker"))
         #expect(cbError.explanation.contains("pacs.example.com"))
