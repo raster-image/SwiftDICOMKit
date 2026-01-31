@@ -580,6 +580,9 @@ public actor DICOMStorageServer {
             delegate: delegate,
             eventHandler: { [weak self] event in
                 await self?.handleAssociationEvent(event)
+            },
+            completionHandler: { [weak self] completedAssociation in
+                await self?.removeAssociationAsync(completedAssociation)
             }
         )
         
@@ -592,11 +595,6 @@ public actor DICOMStorageServer {
     
     private func handleAssociationEvent(_ event: StorageServerEvent) {
         eventContinuation?.yield(event)
-        
-        // Clean up released/aborted associations
-        if case .associationReleased = event {
-            // Note: We would need association ID tracking for proper cleanup
-        }
     }
     
     nonisolated func removeAssociation(_ association: SCPAssociation) {
@@ -627,6 +625,9 @@ actor SCPAssociation {
     /// Event handler callback
     private let eventHandler: @Sendable (StorageServerEvent) async -> Void
     
+    /// Completion handler called when association ends
+    private let completionHandler: @Sendable (SCPAssociation) async -> Void
+    
     /// Negotiated presentation contexts (context ID -> transfer syntax)
     private var acceptedContexts: [UInt8: (abstractSyntax: String, transferSyntax: String)] = [:]
     
@@ -647,12 +648,14 @@ actor SCPAssociation {
         connection: NWConnection,
         configuration: StorageSCPConfiguration,
         delegate: any StorageDelegate,
-        eventHandler: @escaping @Sendable (StorageServerEvent) async -> Void
+        eventHandler: @escaping @Sendable (StorageServerEvent) async -> Void,
+        completionHandler: @escaping @Sendable (SCPAssociation) async -> Void
     ) {
         self.connection = connection
         self.configuration = configuration
         self.delegate = delegate
         self.eventHandler = eventHandler
+        self.completionHandler = completionHandler
     }
     
     /// Starts handling the association
@@ -676,6 +679,7 @@ actor SCPAssociation {
         connection.stateUpdateHandler = nil
         
         guard connection.state == .ready else {
+            await completionHandler(self)
             return
         }
         
@@ -685,6 +689,9 @@ actor SCPAssociation {
         } catch {
             await eventHandler(.error(error))
         }
+        
+        // Notify server that this association is complete
+        await completionHandler(self)
     }
     
     /// Aborts the association
@@ -732,11 +739,13 @@ actor SCPAssociation {
         }
         
         // Build association info
+        // Note: Remote port extraction from NWConnection.endpoint is not directly available
+        // as endpoints may be various types (hostPort, service, etc.)
         let info = AssociationInfo(
             callingAETitle: callingAETitle,
             calledAETitle: calledAE,
             remoteHost: connection.endpoint.debugDescription,
-            remotePort: 0, // Would need to extract from endpoint
+            remotePort: 0, // Port not directly available from NWConnection endpoint
             proposedSOPClasses: associateRequest.presentationContexts.map { $0.abstractSyntax },
             proposedTransferSyntaxes: associateRequest.presentationContexts.flatMap { $0.transferSyntaxes }
         )
@@ -793,15 +802,15 @@ actor SCPAssociation {
             }
             
             // Find first supported transfer syntax
-            var foundTransferSyntax: String? = nil
+            var selectedTransferSyntax: String? = nil
             for ts in context.transferSyntaxes {
                 if effectiveTransferSyntaxes.contains(ts) {
-                    foundTransferSyntax = ts
+                    selectedTransferSyntax = ts
                     break
                 }
             }
             
-            if let ts = foundTransferSyntax {
+            if let ts = selectedTransferSyntax {
                 accepted.append(AcceptedPresentationContext(
                     id: context.id,
                     result: .acceptance,
